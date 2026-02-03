@@ -38,13 +38,13 @@ const tools = [
 export function ActionToolbar({ activeTool, onToolChange }: ActionToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Simply notify parent of tool change
+  // Parent will handle "link" > Open Asset Picker
   const handleToolClick = (toolId: string) => {
-    if (toolId === "link") {
-      fileInputRef.current?.click()
-    } else {
-      onToolChange(toolId)
-    }
+    onToolChange(toolId)
   }
+
+  // File input logic removed - moved to Dashboard for asset management
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -94,13 +94,7 @@ export function ActionToolbar({ activeTool, onToolChange }: ActionToolbarProps) 
           })}
         </div>
 
-        {/* Hidden File Input */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={handleFileChange}
-        />
+
       </div>
     </TooltipProvider>
   )

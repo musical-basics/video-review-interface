@@ -16,39 +16,11 @@ import {
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 
-// Import Rich UI Components
-import { VideoPlayer } from "@/components/video-review/video-player"
-import { AnnotationCanvas } from "@/components/video-review/annotation-canvas"
-import { SpatialComments } from "@/components/video-review/spatial-comments"
-import { ActionToolbar } from "@/components/video-review/action-toolbar"
-import { PlaybackControls } from "@/components/video-review/playback-controls"
-import { RichTimeline } from "@/components/video-review/rich-timeline"
-import { CommentsSidebar } from "@/components/video-review/comments-sidebar"
+import { AssetPicker } from "@/components/video-review/asset-picker"
 
-interface VideoData {
-    id: string
-    filename: string
-    r2_key: string
-    status: string
-    created_at: string
-}
+// ... imports
 
-interface Comment {
-    id: number
-    time: number
-    text: string
-    type: "general" | "issue" | "praise" | "question" | "replacement"
-    author: {
-        name: string
-        avatar: string
-        initials: string
-    }
-    x?: number
-    y?: number
-    resolved?: boolean
-    link?: string
-}
-
+// ... inside EditorPage
 export default function EditorPage() {
     const params = useParams()
     const [video, setVideo] = useState<VideoData | null>(null)
@@ -62,6 +34,7 @@ export default function EditorPage() {
     const [duration, setDuration] = useState(0)
     const [isPlaying, setIsPlaying] = useState(false)
     const [showCommentInput, setShowCommentInput] = useState(false)
+    const [showAssetPicker, setShowAssetPicker] = useState(false)
     const [comments, setComments] = useState<Comment[]>([]) // TODO: Fetch from Supabase
 
     useEffect(() => {
@@ -135,12 +108,39 @@ export default function EditorPage() {
     )
 
     const handleToolChange = useCallback((tool: string) => {
+        if (tool === "link") {
+            setShowAssetPicker(true)
+            return
+        }
         setActiveTool(tool)
-        if (tool !== "pointer") {
+        if (tool !== "pointer" && tool !== "hand" && tool !== "eraser") {
             setIsPlaying(false)
             videoRef.current?.pause()
         }
     }, [])
+
+    const handleAssetSelect = (asset: any) => {
+        setShowAssetPicker(false)
+
+        // Add "Replacement" Comment
+        if (!process.env.NEXT_PUBLIC_R2_DOMAIN) return
+
+        const assetUrl = `${process.env.NEXT_PUBLIC_R2_DOMAIN}/${asset.r2_key}`
+
+        const newComment: Comment = {
+            id: Date.now(),
+            time: currentTime,
+            text: `Attached: ${asset.filename}`,
+            type: "replacement",
+            link: assetUrl,
+            author: {
+                name: "You",
+                avatar: "",
+                initials: "YO",
+            },
+        }
+        setComments((prev) => [...prev, newComment])
+    }
 
     const isAnnotating = activeTool !== "pointer"
 
@@ -268,7 +268,6 @@ export default function EditorPage() {
                     />
                 </div>
 
-                {/* Comments sidebar */}
                 <CommentsSidebar
                     comments={comments}
                     currentTime={currentTime}
@@ -278,6 +277,12 @@ export default function EditorPage() {
                     onCloseInput={() => setShowCommentInput(false)}
                 />
             </div>
+
+            <AssetPicker
+                open={showAssetPicker}
+                onOpenChange={setShowAssetPicker}
+                onSelect={handleAssetSelect}
+            />
         </div>
     )
 }
