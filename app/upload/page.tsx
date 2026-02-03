@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import { Upload, FileVideo, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -29,31 +30,41 @@ export default function UploadPage() {
         setFileName(file.name);
 
         try {
-            // 1. Request presigned URL (mocked)
-            const res = await fetch("/api/upload-url", { method: "POST" });
-            const data = await res.json();
+            // 1. Get the Presigned URL from our API
+            const response = await fetch("/api/upload-url", {
+                method: "POST",
+                body: JSON.stringify({ filename: file.name, contentType: file.type }),
+            });
+            const { url, key } = await response.json();
 
-            // 2. Mock upload progress
-            const simulateProgress = () => {
-                let progress = 0;
-                const interval = setInterval(() => {
-                    progress += 5;
-                    setUploadProgress(progress);
+            // 2. Upload DIRECTLY to Cloudflare R2
+            const uploadResponse = await fetch(url, {
+                method: "PUT",
+                body: file,
+                headers: { "Content-Type": file.type },
+            });
 
-                    if (progress >= 100) {
-                        clearInterval(interval);
-                        // 3. Redirect on success
-                        setTimeout(() => {
-                            router.push(`/review/${data.fileId}`);
-                        }, 500);
-                    }
-                }, 100);
-            };
+            if (!uploadResponse.ok) throw new Error("Upload to R2 failed");
 
-            simulateProgress();
+            // 3. Save metadata to Supabase
+            const { data, error } = await supabase
+                .from("videos")
+                .insert({
+                    filename: file.name,
+                    r2_key: key,
+                    status: "ready",
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            // 4. Redirect to the Review Page
+            router.push(`/review/${data.id}`);
 
         } catch (error) {
             console.error("Upload failed", error);
+            alert("Upload failed. Check console.");
             setIsUploading(false);
             setUploadProgress(0);
         }
