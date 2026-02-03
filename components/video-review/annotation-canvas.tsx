@@ -44,7 +44,7 @@ export function AnnotationCanvas({ isDrawing, activeTool, onDrawingComplete }: A
     // Clear and redraw
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    // Draw all paths
+    // Draw all completed paths (DE-NORMALIZE)
     paths.forEach((path) => {
       if (path.points.length < 2) return
       ctx.beginPath()
@@ -52,21 +52,28 @@ export function AnnotationCanvas({ isDrawing, activeTool, onDrawingComplete }: A
       ctx.lineWidth = 3
       ctx.lineCap = "round"
       ctx.lineJoin = "round"
-      ctx.moveTo(path.points[0].x, path.points[0].y)
+
+      const startX = path.points[0].x * canvas.width
+      const startY = path.points[0].y * canvas.height
+
+      ctx.moveTo(startX, startY)
+
       path.points.forEach((point) => {
-        ctx.lineTo(point.x, point.y)
+        ctx.lineTo(point.x * canvas.width, point.y * canvas.height)
       })
       ctx.stroke()
     })
 
-    // Draw current path
+    // Draw current path (RAW PIXELS)
     if (currentPath.length > 1) {
       ctx.beginPath()
       ctx.strokeStyle = getToolColor()
       ctx.lineWidth = 3
       ctx.lineCap = "round"
       ctx.lineJoin = "round"
+
       ctx.moveTo(currentPath[0].x, currentPath[0].y)
+
       currentPath.forEach((point) => {
         ctx.lineTo(point.x, point.y)
       })
@@ -77,12 +84,13 @@ export function AnnotationCanvas({ isDrawing, activeTool, onDrawingComplete }: A
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
     if (!canvas) return { x: 0, y: 0 }
-    
+
     const rect = canvas.getBoundingClientRect()
-    // Scale mouse position to match internal canvas dimensions
+
+    // Return raw pixel coordinates relative to canvas
     const scaleX = canvas.width / rect.width
     const scaleY = canvas.height / rect.height
-    
+
     return {
       x: (e.clientX - rect.left) * scaleX,
       y: (e.clientY - rect.top) * scaleY
@@ -104,9 +112,22 @@ export function AnnotationCanvas({ isDrawing, activeTool, onDrawingComplete }: A
 
   const handleMouseUp = () => {
     if (currentPath.length > 1) {
-      const newPath = { points: currentPath, color: getToolColor() }
-      setPaths((prev) => [...prev, newPath])
-      onDrawingComplete?.([...paths, newPath])
+      const canvas = canvasRef.current
+      if (canvas) {
+        // NORMALIZE: Convert pixels to percentage on save
+        const normalizedPoints = currentPath.map(p => ({
+          x: p.x / canvas.width,
+          y: p.y / canvas.height
+        }))
+
+        const newPath = {
+          points: normalizedPoints,
+          color: getToolColor()
+        }
+
+        setPaths((prev) => [...prev, newPath])
+        onDrawingComplete?.([...paths, newPath])
+      }
     }
     setCurrentPath([])
     setIsMouseDown(false)
@@ -117,9 +138,8 @@ export function AnnotationCanvas({ isDrawing, activeTool, onDrawingComplete }: A
       ref={canvasRef}
       width={1920}
       height={1080}
-      className={`absolute inset-0 w-full h-full ${
-        isDrawing && activeTool !== "pointer" ? "cursor-crosshair" : "pointer-events-none"
-      }`}
+      className={`absolute inset-0 w-full h-full ${isDrawing && activeTool !== "pointer" ? "cursor-crosshair" : "pointer-events-none"
+        }`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
