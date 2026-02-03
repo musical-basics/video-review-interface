@@ -1,0 +1,27 @@
+{
+    "ignore": {
+        "useGitignore": true,
+        "useDefaultPatterns": true,
+        "customPatterns": [
+            "node_modules/**",
+            ".next/**",
+            ".git/**",
+            "dist/**",
+            "coverage/**",
+            "pnpm-lock.yaml",
+            "package-lock.json",
+            "yarn.lock",
+            "**/*.svg",
+            "**/*.png",
+            "**/*.jpg",
+            "**/*.jpeg",
+            "**/*.gif",
+            "**/*.ico",
+            "**/*.mp4",
+            "**/*.webm",
+            "**/*.mov",
+            ".DS_Store",
+            "public/**"
+        ]
+    }
+}
