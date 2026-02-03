@@ -1,252 +1,113 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
-import { VideoPlayer, VideoPlayerRef } from "@/components/video-review/video-player"
-import { AnnotationCanvas } from "@/components/video-review/annotation-canvas"
-import { SpatialComments } from "@/components/video-review/spatial-comments"
-import { ActionToolbar } from "@/components/video-review/action-toolbar"
-import { PlaybackControls } from "@/components/video-review/playback-controls"
-import { RichTimeline } from "@/components/video-review/rich-timeline"
-import { CommentsSidebar } from "@/components/video-review/comments-sidebar"
-import { Badge } from "@/components/ui/badge"
+import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
-import {
-  Download,
-  Share2,
-  MoreHorizontal,
-  CheckCircle2,
-  Film,
-} from "lucide-react"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Plus, Video, Calendar, Clock } from "lucide-react"
+import Link from "next/link"
+import { formatDistanceToNow } from "date-fns"
 
-// Mock data
-const initialComments = [
-  {
-    id: 1,
-    time: 15.5,
-    text: "Color grade looks off here - too warm for the mood we're going for",
-    type: "drawing",
-    x: 40,
-    y: 30,
-    author: {
-      name: "Sarah Chen",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100",
-      initials: "SC",
-    },
-  },
-  {
-    id: 2,
-    time: 45.2,
-    text: "Swap with B-Roll from the outdoor shoot",
-    type: "replacement",
-    link: "clip_v2.mp4",
-    author: {
-      name: "Marcus Johnson",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
-      initials: "MJ",
-    },
-  },
-  {
-    id: 3,
-    time: 78.0,
-    text: "Add lower third title here: 'Interview with CEO'",
-    type: "text",
-    x: 25,
-    y: 85,
-    author: {
-      name: "Emily Rodriguez",
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100",
-      initials: "ER",
-    },
-  },
-  {
-    id: 4,
-    time: 120.5,
-    text: "Great shot! Keep this one for sure.",
-    type: "general",
-    author: {
-      name: "David Kim",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100",
-      initials: "DK",
-    },
-  },
-  {
-    id: 5,
-    time: 180.0,
-    text: "Audio levels drop here - needs adjustment",
-    type: "general",
-    x: 70,
-    y: 50,
-    author: {
-      name: "Sarah Chen",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100",
-      initials: "SC",
-    },
-  },
-]
+interface VideoProject {
+  id: string
+  filename: string
+  status: string
+  created_at: string
+}
 
-export default function VideoReviewPage() {
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(596.5) // Big Buck Bunny duration
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [activeTool, setActiveTool] = useState("pointer")
-  const [showCommentInput, setShowCommentInput] = useState(false)
-  const [comments, setComments] = useState(initialComments)
+export default function DashboardPage() {
+  const [projects, setProjects] = useState<VideoProject[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const videoRef = useRef<VideoPlayerRef>(null)
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("videos")
+          .select("*")
+          .order("created_at", { ascending: false })
 
-  const handlePlayPause = useCallback(() => {
-    setIsPlaying((prev) => !prev)
-  }, [])
-
-  const handleSeek = useCallback((time: number) => {
-    setCurrentTime(time)
-    videoRef.current?.seekTo(time)
-  }, [])
-
-  const handleCommentClick = useCallback((comment: { time: number }) => {
-    handleSeek(comment.time)
-    setIsPlaying(false)
-  }, [handleSeek])
-
-  const handleAddComment = useCallback(
-    (text: string, link?: string) => {
-      const newComment = {
-        id: Date.now(),
-        time: currentTime,
-        text,
-        type: link ? "replacement" : "general",
-        link,
-        author: {
-          name: "You",
-          avatar: "",
-          initials: "YO",
-        },
+        if (error) throw error
+        setProjects(data || [])
+      } catch (error) {
+        console.error("Error fetching projects:", error)
+      } finally {
+        setLoading(false)
       }
-      setComments((prev) => [...prev, newComment])
-      setShowCommentInput(false)
-    },
-    [currentTime]
-  )
-
-  const handleToolChange = useCallback((tool: string) => {
-    setActiveTool(tool)
-    if (tool !== "pointer") {
-      setIsPlaying(false)
     }
-  }, [])
 
-  const isAnnotating = activeTool !== "pointer"
+    fetchProjects()
+  }, [])
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
-      {/* Top Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-primary">
-            <Film className="h-5 w-5" />
-            <span className="font-semibold">FrameReview</span>
-          </div>
-          <div className="w-px h-5 bg-border" />
-          <div>
-            <h1 className="text-sm font-medium text-foreground">
-              Product_Launch_Final_v3.mp4
-            </h1>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Version 3</span>
-              <span>•</span>
-              <span>Uploaded 2 hours ago</span>
-            </div>
-          </div>
+    <div className="container py-8 space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your video review projects
+          </p>
         </div>
-
-        <div className="flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className="bg-accent/10 text-accent border-accent/30"
-          >
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            Ready for Review
-          </Badge>
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            <Download className="h-4 w-4" />
+        <Link href="/upload">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            New Project
           </Button>
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            <Share2 className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </div>
-      </header>
-
-      {/* Main content area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Video player area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Player container */}
-          <div className="flex-1 bg-black relative overflow-hidden">
-            {/* Video element */}
-            <VideoPlayer
-              ref={videoRef}
-              currentTime={currentTime}
-              isPlaying={isPlaying}
-              onTimeUpdate={setCurrentTime}
-              onDurationChange={setDuration}
-              onPlayPause={handlePlayPause}
-            />
-
-            {/* Annotation canvas overlay */}
-            <AnnotationCanvas
-              isDrawing={isAnnotating}
-              activeTool={activeTool}
-            />
-
-            {/* Spatial comments */}
-            <SpatialComments
-              comments={comments}
-              currentTime={currentTime}
-              onCommentClick={handleCommentClick}
-            />
-
-            {/* Action toolbar */}
-            <ActionToolbar
-              activeTool={activeTool}
-              onToolChange={handleToolChange}
-            />
-
-            {/* Playback controls */}
-            <PlaybackControls
-              isPlaying={isPlaying}
-              onPlayPause={handlePlayPause}
-              onStepBack={() => videoRef.current?.stepFrame("backward")}
-              onStepForward={() => videoRef.current?.stepFrame("forward")}
-              onAddComment={() => {
-                setIsPlaying(false)
-                setShowCommentInput(true)
-              }}
-            />
-          </div>
-
-          {/* Timeline */}
-          <RichTimeline
-            currentTime={currentTime}
-            duration={duration}
-            comments={comments}
-            onSeek={handleSeek}
-            onCommentClick={handleCommentClick}
-          />
-        </div>
-
-        {/* Comments sidebar */}
-        <CommentsSidebar
-          comments={comments}
-          currentTime={currentTime}
-          onCommentClick={handleCommentClick}
-          showCommentInput={showCommentInput}
-          onAddComment={handleAddComment}
-          onCloseInput={() => setShowCommentInput(false)}
-        />
+        </Link>
       </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : projects.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-32 border rounded-lg bg-muted/10 border-dashed">
+          <div className="p-4 rounded-full bg-muted mb-4">
+            <Video className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
+          <p className="text-muted-foreground mb-6 text-center max-w-sm">
+            Upload a video to start your first review project.
+          </p>
+          <Link href="/upload">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Project
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {projects.map((project) => (
+            <Link key={project.id} href={`/editor/${project.id}`}>
+              <Card className="h-full overflow-hidden hover:border-primary transition-colors cursor-pointer group">
+                <div className="aspect-video bg-muted/50 flex items-center justify-center relative group-hover:bg-muted/70 transition-colors">
+                  <Video className="w-10 h-10 text-muted-foreground/50" />
+                  {/* Placeholder for thumbnail */}
+                </div>
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-base font-medium truncate" title={project.filename}>
+                    {project.filename}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="flex items-center text-xs text-muted-foreground mt-2 space-x-4">
+                    <div className="flex items-center">
+                      <Calendar className="mr-1 h-3 w-3" />
+                      {new Date(project.created_at).toLocaleDateString()}
+                    </div>
+                    <div className="flex items-center capitalize">
+                      <span className={`w-2 h-2 rounded-full mr-1.5 ${project.status === 'ready' ? 'bg-green-500' : 'bg-yellow-500'
+                        }`} />
+                      {project.status}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -14,10 +14,10 @@ export function SiteHeader() {
                     </Link>
                     <nav className="flex items-center space-x-6 text-sm font-medium">
                         <Link
-                            href="/upload"
+                            href="/"
                             className="transition-colors hover:text-foreground/80 text-foreground/60"
                         >
-                            Upload
+                            Dashboard
                         </Link>
                     </nav>
                 </div>

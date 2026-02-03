@@ -59,8 +59,8 @@ export default function UploadPage() {
 
             if (error) throw error;
 
-            // 4. Redirect to the Review Page
-            router.push(`/review/${data.id}`);
+            // 4. Redirect to the Editor Page
+            router.push(`/editor/${data.id}`);
 
         } catch (error) {
             console.error("Upload failed", error);
