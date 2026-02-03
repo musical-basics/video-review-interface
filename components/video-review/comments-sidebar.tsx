@@ -25,20 +25,7 @@ import {
   Check
 } from "lucide-react"
 
-interface Comment {
-  id: number
-  time: number
-  text: string
-  type: string
-  link?: string
-  x?: number
-  y?: number
-  author: {
-    name: string
-    avatar: string
-    initials: string
-  }
-}
+import { Comment } from "@/types/video-review"
 
 interface CommentsSidebarProps {
   comments: Comment[]

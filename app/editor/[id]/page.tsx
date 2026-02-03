@@ -35,21 +35,7 @@ interface VideoData {
     created_at: string
 }
 
-interface Comment {
-    id: number
-    time: number
-    text: string
-    type: "general" | "issue" | "praise" | "question" | "replacement"
-    author: {
-        name: string
-        avatar: string
-        initials: string
-    }
-    x?: number
-    y?: number
-    resolved?: boolean
-    link?: string
-}
+import { Comment } from "@/types/video-review"
 
 export default function EditorPage() {
     const params = useParams()

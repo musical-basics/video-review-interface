@@ -12,17 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { MessageSquare, MessageSquareOff } from "lucide-react"
 
-interface Comment {
-  id: number
-  time: number
-  text: string
-  type: string
-  author?: {
-    name: string
-    avatar: string
-    initials: string
-  }
-}
+import { Comment } from "@/types/video-review"
 
 interface RichTimelineProps {
   currentTime: number
@@ -126,7 +116,7 @@ export function RichTimeline({
           {/* Comment markers with speech bubbles */}
           {comments.map((comment) => {
             const position = duration > 0 ? (comment.time / duration) * 100 : 0
-            
+
             // Speech bubble component (reused for both modes)
             const SpeechBubble = ({ compact = false }: { compact?: boolean }) => (
               <div className="relative">
@@ -138,8 +128,8 @@ export function RichTimeline({
                   {/* Author and timestamp header */}
                   <div className="flex items-center gap-1.5 mb-0.5">
                     {comment.author?.avatar ? (
-                      <img 
-                        src={comment.author.avatar || "/placeholder.svg"} 
+                      <img
+                        src={comment.author.avatar || "/placeholder.svg"}
                         alt={comment.author.name}
                         className={`${compact ? "w-4 h-4" : "w-5 h-5"} rounded-full object-cover`}
                       />
@@ -174,12 +164,12 @@ export function RichTimeline({
                 </div>
               </div>
             )
-            
+
             return (
               <div key={comment.id} className="absolute top-1" style={{ left: `${position}%` }}>
                 {/* Always visible speech bubble */}
                 {showAllBubbles && (
-                  <div 
+                  <div
                     className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation()
@@ -189,7 +179,7 @@ export function RichTimeline({
                     <SpeechBubble compact />
                   </div>
                 )}
-                
+
                 {/* Marker dot with hover tooltip */}
                 <Tooltip delayDuration={100}>
                   <TooltipTrigger asChild>
@@ -259,7 +249,7 @@ export function RichTimeline({
               <span>General</span>
             </div>
           </div>
-          
+
           {/* Toggle speech bubbles */}
           <Button
             variant={showAllBubbles ? "secondary" : "ghost"}

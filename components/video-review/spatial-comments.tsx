@@ -8,19 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-interface Comment {
-  id: number
-  time: number
-  text: string
-  type: string
-  x?: number
-  y?: number
-  author: {
-    name: string
-    avatar: string
-    initials: string
-  }
-}
+import { Comment } from "@/types/video-review"
 
 interface SpatialCommentsProps {
   comments: Comment[]
