@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -31,6 +32,30 @@ const tools = [
 ]
 
 export function ActionToolbar({ activeTool, onToolChange }: ActionToolbarProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleToolClick = (toolId: string) => {
+    if (toolId === "link") {
+      fileInputRef.current?.click()
+    } else {
+      onToolChange(toolId)
+    }
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // MOCK UPLOAD LOGIC
+    // In production, you would upload this file to R2 here
+    // and then call a prop function to add the comment link
+    console.log("File selected:", file.name)
+    alert(`File selected: ${file.name}\n(Upload logic would trigger here)`)
+
+    // Reset inputs
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
   return (
     <TooltipProvider>
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
@@ -44,12 +69,11 @@ export function ActionToolbar({ activeTool, onToolChange }: ActionToolbarProps) 
                   <Button
                     variant={isActive ? "default" : "ghost"}
                     size="sm"
-                    className={`h-9 w-9 p-0 ${
-                      isActive
+                    className={`h-9 w-9 p-0 ${isActive
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                    }`}
-                    onClick={() => onToolChange(tool.id)}
+                      }`}
+                    onClick={() => handleToolClick(tool.id)}
                   >
                     <Icon className="h-4 w-4" />
                     <span className="sr-only">{tool.label}</span>
@@ -65,6 +89,14 @@ export function ActionToolbar({ activeTool, onToolChange }: ActionToolbarProps) 
             )
           })}
         </div>
+
+        {/* Hidden File Input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          onChange={handleFileChange}
+        />
       </div>
     </TooltipProvider>
   )
