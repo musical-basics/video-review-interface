@@ -14,6 +14,8 @@ import {
   MoveUpRight,
   ZoomIn,
   Type,
+  Hand,
+  Eraser,
   Paperclip,
 } from "lucide-react"
 
@@ -24,10 +26,12 @@ interface ActionToolbarProps {
 
 const tools = [
   { id: "pointer", icon: MousePointer2, label: "Pointer", shortcut: "V" },
+  { id: "hand", icon: Hand, label: "Grab / Move", shortcut: "H" },
   { id: "pen", icon: Pencil, label: "Draw", shortcut: "P" },
   { id: "arrow", icon: MoveUpRight, label: "Arrow", shortcut: "A" },
   { id: "zoom", icon: ZoomIn, label: "Zoom Here", shortcut: "Z" },
   { id: "text", icon: Type, label: "Text", shortcut: "T" },
+  { id: "eraser", icon: Eraser, label: "Eraser", shortcut: "E" },
   { id: "link", icon: Paperclip, label: "Attach Clip", shortcut: "L" },
 ]
 
@@ -70,8 +74,8 @@ export function ActionToolbar({ activeTool, onToolChange }: ActionToolbarProps) 
                     variant={isActive ? "default" : "ghost"}
                     size="sm"
                     className={`h-9 w-9 p-0 ${isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                       }`}
                     onClick={() => handleToolClick(tool.id)}
                   >
