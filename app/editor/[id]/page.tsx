@@ -67,6 +67,23 @@ export default function EditorPage() {
     const [showAssetPicker, setShowAssetPicker] = useState(false)
     const [comments, setComments] = useState<Comment[]>([]) // TODO: Fetch from Supabase
 
+    // View Mode State
+    const [viewMode, setViewMode] = useState<"standard" | "large">("large")
+    const playerContainerRef = useRef<HTMLDivElement>(null)
+
+    // View Mode Handlers
+    const toggleFullscreen = () => {
+        if (!playerContainerRef.current) return
+
+        if (!document.fullscreenElement) {
+            playerContainerRef.current.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
     useEffect(() => {
         const fetchVideo = async () => {
             if (!params.id) return
@@ -227,14 +244,36 @@ export default function EditorPage() {
                         <CheckCircle2 className="h-3 w-3 mr-1" />
                         {video.status}
                     </Badge>
+
+                    {/* View Mode Controls */}
+                    <div className="flex items-center border rounded-md mr-2 bg-muted/50">
+                        <Button
+                            variant={viewMode === "standard" ? "secondary" : "ghost"}
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => setViewMode("standard")}
+                        >
+                            Standard
+                        </Button>
+                        <div className="w-px h-4 bg-border" />
+                        <Button
+                            variant={viewMode === "large" ? "secondary" : "ghost"}
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => setViewMode("large")}
+                        >
+                            Large
+                        </Button>
+                    </div>
+
+                    <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={toggleFullscreen}>
+                        <MoreHorizontal className="h-4 w-4 rotate-90" />
+                    </Button>
                     <Button variant="ghost" size="sm" className="text-muted-foreground">
                         <Download className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="sm" className="text-muted-foreground">
                         <Share2 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-muted-foreground">
-                        <MoreHorizontal className="h-4 w-4" />
                     </Button>
                 </div>
             </header>
@@ -242,9 +281,18 @@ export default function EditorPage() {
             {/* Main content area */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Video player area */}
-                <div className="flex-1 flex flex-col min-w-0">
+                <div
+                    className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${viewMode === "standard" ? "p-8 bg-muted/10 justify-start" : ""
+                        }`}
+                >
                     {/* Player container */}
-                    <div className="flex-1 bg-black relative overflow-hidden">
+                    <div
+                        ref={playerContainerRef}
+                        className={`bg-black relative overflow-hidden transition-all duration-300 ${viewMode === "standard"
+                                ? "w-full max-w-5xl mx-auto rounded-lg shadow-2xl aspect-video"
+                                : "flex-1 w-full h-full"
+                            }`}
+                    >
                         {/* Video element - Passed videoUrl here! */}
                         <VideoPlayer
                             ref={videoRef}
