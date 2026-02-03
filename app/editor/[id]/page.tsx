@@ -105,7 +105,7 @@ export default function EditorPage() {
 
     const handleSeek = useCallback((time: number) => {
         if (videoRef.current) {
-            videoRef.current.seek(time)
+            videoRef.current.seekTo(time)
             setCurrentTime(time)
         }
     }, [])
