@@ -1,13 +1,16 @@
-"use client"
-
-import React from "react"
-
-import { useState } from "react"
+import React, { useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   MessageSquare,
   Link2,
@@ -16,6 +19,10 @@ import {
   Clock,
   Send,
   Paperclip,
+  MoreVertical,
+  Trash2,
+  X,
+  Check
 } from "lucide-react"
 
 interface Comment {
@@ -40,6 +47,8 @@ interface CommentsSidebarProps {
   showCommentInput: boolean
   onAddComment: (text: string, link?: string) => void
   onCloseInput: () => void
+  onDeleteComment?: (id: number) => void
+  onEditComment?: (id: number, newText: string) => void
 }
 
 function formatTime(seconds: number): string {
@@ -81,10 +90,16 @@ export function CommentsSidebar({
   showCommentInput,
   onAddComment,
   onCloseInput,
+  onDeleteComment,
+  onEditComment,
 }: CommentsSidebarProps) {
   const [newComment, setNewComment] = useState("")
   const [attachLink, setAttachLink] = useState(false)
   const [linkUrl, setLinkUrl] = useState("")
+
+  // Edit State
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editText, setEditText] = useState("")
 
   const sortedComments = [...comments].sort((a, b) => a.time - b.time)
 
@@ -96,6 +111,23 @@ export function CommentsSidebar({
       setLinkUrl("")
       setAttachLink(false)
     }
+  }
+
+  const startEdit = (comment: Comment) => {
+    setEditingId(comment.id)
+    setEditText(comment.text)
+  }
+
+  const saveEdit = (id: number) => {
+    if (editText.trim() && onEditComment) {
+      onEditComment(id, editText)
+      setEditingId(null)
+    }
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditText("")
   }
 
   return (
@@ -140,9 +172,8 @@ export function CommentsSidebar({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className={`text-muted-foreground hover:text-foreground ${
-                  attachLink ? "text-primary" : ""
-                }`}
+                className={`text-muted-foreground hover:text-foreground ${attachLink ? "text-primary" : ""
+                  }`}
                 onClick={() => setAttachLink(!attachLink)}
               >
                 <Paperclip className="h-4 w-4 mr-1" />
@@ -171,12 +202,14 @@ export function CommentsSidebar({
       <ScrollArea className="flex-1">
         <div className="p-2">
           {sortedComments.map((comment) => (
-            <button
+            <div
               key={comment.id}
-              className="w-full text-left p-3 rounded-lg hover:bg-secondary/50 transition-colors mb-1 group"
-              onClick={() => onCommentClick(comment)}
+              className="w-full text-left p-3 rounded-lg hover:bg-secondary/50 transition-colors mb-1 group relative"
             >
-              <div className="flex items-start gap-3">
+              <div
+                className="flex items-start gap-3 cursor-pointer"
+                onClick={() => onCommentClick(comment)}
+              >
                 <Avatar className="h-8 w-8 flex-shrink-0">
                   <AvatarImage
                     src={comment.author.avatar || "/placeholder.svg"}
@@ -186,6 +219,7 @@ export function CommentsSidebar({
                     {comment.author.initials}
                   </AvatarFallback>
                 </Avatar>
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="text-sm font-medium text-foreground truncate">
@@ -195,30 +229,77 @@ export function CommentsSidebar({
                       {formatTime(comment.time)}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {comment.text}
-                  </p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ${getTypeBadgeColor(comment.type)}`}
-                    >
-                      {getTypeIcon(comment.type)}
-                      <span className="ml-1 capitalize">{comment.type}</span>
-                    </Badge>
-                    {comment.link && (
-                      <Badge
-                        variant="outline"
-                        className="text-xs bg-marker-cyan/10 text-marker-cyan border-marker-cyan/30"
-                      >
-                        <Link2 className="h-3 w-3 mr-1" />
-                        {comment.link}
-                      </Badge>
-                    )}
-                  </div>
+
+                  {editingId === comment.id ? (
+                    <div className="space-y-2 mt-2" onClick={e => e.stopPropagation()}>
+                      <Textarea
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        className="text-sm min-h-[60px]"
+                      />
+                      <div className="flex items-center gap-2 justify-end">
+                        <Button size="sm" variant="ghost" onClick={cancelEdit} className="h-7 w-7 p-0">
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" onClick={() => saveEdit(comment.id)} className="h-7 w-7 p-0">
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground line-clamp-2 pr-6">
+                        {comment.text}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${getTypeBadgeColor(comment.type)}`}
+                        >
+                          {getTypeIcon(comment.type)}
+                          <span className="ml-1 capitalize">{comment.type}</span>
+                        </Badge>
+                        {comment.link && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-marker-cyan/10 text-marker-cyan border-marker-cyan/30"
+                          >
+                            <Link2 className="h-3 w-3 mr-1" />
+                            {comment.link.split('/').pop()}
+                          </Badge>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
-            </button>
+
+              {/* Action Menu - Only show if not editing */}
+              {editingId !== comment.id && (
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:bg-muted">
+                        <MoreVertical className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => startEdit(comment)}>
+                        <Pencil className="h-3.5 w-3.5 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => onDeleteComment?.(comment.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </ScrollArea>

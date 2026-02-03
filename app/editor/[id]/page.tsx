@@ -189,6 +189,17 @@ export default function EditorPage() {
         setComments((prev) => [...prev, newComment])
     }
 
+    // Comment Actions
+    const handleDeleteComment = useCallback((id: number) => {
+        setComments(prev => prev.filter(c => c.id !== id))
+    }, [])
+
+    const handleEditComment = useCallback((id: number, newText: string) => {
+        setComments(prev => prev.map(c =>
+            c.id === id ? { ...c, text: newText } : c
+        ))
+    }, [])
+
     const isAnnotating = activeTool !== "pointer"
 
 
@@ -289,8 +300,8 @@ export default function EditorPage() {
                     <div
                         ref={playerContainerRef}
                         className={`bg-black relative overflow-hidden transition-all duration-300 ${viewMode === "standard"
-                                ? "w-full max-w-5xl mx-auto rounded-lg shadow-2xl aspect-video"
-                                : "flex-1 w-full h-full"
+                            ? "w-full max-w-5xl mx-auto rounded-lg shadow-2xl aspect-video"
+                            : "flex-1 w-full h-full"
                             }`}
                     >
                         {/* Video element - Passed videoUrl here! */}
@@ -353,6 +364,8 @@ export default function EditorPage() {
                     showCommentInput={showCommentInput}
                     onAddComment={handleAddComment}
                     onCloseInput={() => setShowCommentInput(false)}
+                    onDeleteComment={handleDeleteComment}
+                    onEditComment={handleEditComment}
                 />
             </div>
 
