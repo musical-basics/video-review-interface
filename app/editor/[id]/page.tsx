@@ -1,12 +1,29 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { AnnotationCanvas } from "@/components/video-review/annotation-canvas"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Play, Pause, Pen, MousePointer } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import {
+    ArrowLeft,
+    Film,
+    CheckCircle2,
+    Download,
+    Share2,
+    MoreHorizontal
+} from "lucide-react"
 import Link from "next/link"
+import { formatDistanceToNow } from "date-fns"
+
+// Import Rich UI Components
+import { VideoPlayer } from "@/components/video-review/video-player"
+import { AnnotationCanvas } from "@/components/video-review/annotation-canvas"
+import { SpatialComments } from "@/components/video-review/spatial-comments"
+import { ActionToolbar } from "@/components/video-review/action-toolbar"
+import { PlaybackControls } from "@/components/video-review/playback-controls"
+import { RichTimeline } from "@/components/video-review/rich-timeline"
+import { CommentsSidebar } from "@/components/video-review/comments-sidebar"
 
 interface VideoData {
     id: string
@@ -16,29 +33,36 @@ interface VideoData {
     created_at: string
 }
 
-export default function ReviewPage() {
+interface Comment {
+    id: number
+    time: number
+    text: string
+    type: "general" | "issue" | "praise" | "question" | "replacement"
+    author: {
+        name: string
+        avatar: string
+        initials: string
+    }
+    x?: number
+    y?: number
+    resolved?: boolean
+    link?: string
+}
+
+export default function EditorPage() {
     const params = useParams()
     const [video, setVideo] = useState<VideoData | null>(null)
     const [loading, setLoading] = useState(true)
     const [videoUrl, setVideoUrl] = useState<string | null>(null)
 
-    // Video & Annotation State
-    const videoRef = useRef<HTMLVideoElement>(null)
+    // Editor State (from original app/page.tsx)
+    const videoRef = useRef<any>(null)
+    const [activeTool, setActiveTool] = useState("pointer")
+    const [currentTime, setCurrentTime] = useState(0)
+    const [duration, setDuration] = useState(0)
     const [isPlaying, setIsPlaying] = useState(false)
-    const [isDrawing, setIsDrawing] = useState(false)
-    const [activeTool, setActiveTool] = useState("pen")
-
-    const togglePlay = () => {
-        if (!videoRef.current) return
-        if (isPlaying) {
-            videoRef.current.pause()
-        } else {
-            videoRef.current.play()
-            setIsDrawing(false)
-            setActiveTool("pointer")
-        }
-        setIsPlaying(!isPlaying)
-    }
+    const [showCommentInput, setShowCommentInput] = useState(false)
+    const [comments, setComments] = useState<Comment[]>([]) // TODO: Fetch from Supabase
 
     useEffect(() => {
         const fetchVideo = async () => {
@@ -70,6 +94,57 @@ export default function ReviewPage() {
         fetchVideo()
     }, [params.id])
 
+
+    // Handlers (Adapted from original UI)
+    const handlePlayPause = useCallback(() => {
+        setIsPlaying((prev) => !prev)
+    }, [])
+
+    const handleSeek = useCallback((time: number) => {
+        if (videoRef.current) {
+            videoRef.current.seek(time)
+            setCurrentTime(time)
+        }
+    }, [])
+
+    const handleCommentClick = useCallback((comment: Comment) => {
+        if (comment) {
+            handleSeek(comment.time)
+        }
+    }, [handleSeek])
+
+    const handleAddComment = useCallback(
+        (text: string, link?: string) => {
+            // simplified for now to match child component signature
+            const newComment: Comment = {
+                id: Date.now(),
+                time: currentTime,
+                text,
+                type: link ? "replacement" : "general",
+                link,
+                author: {
+                    name: "You",
+                    avatar: "",
+                    initials: "YO",
+                },
+            }
+            setComments((prev) => [...prev, newComment])
+            setShowCommentInput(false)
+        },
+        [currentTime]
+    )
+
+    const handleToolChange = useCallback((tool: string) => {
+        setActiveTool(tool)
+        if (tool !== "pointer") {
+            setIsPlaying(false)
+            videoRef.current?.pause()
+        }
+    }, [])
+
+    const isAnnotating = activeTool !== "pointer"
+
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -85,7 +160,7 @@ export default function ReviewPage() {
                 <Link href="/">
                     <Button variant="outline">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Home
+                        Back to Dashboard
                     </Button>
                 </Link>
             </div>
@@ -93,76 +168,115 @@ export default function ReviewPage() {
     }
 
     return (
-        <div className="min-h-screen bg-background flex flex-col">
-            <div className="flex-1 container mx-auto py-6 space-y-6">
-                <div className="flex items-center space-x-4">
-                    <Link href="/">
-                        <Button variant="ghost" size="icon">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
+        <div className="h-screen flex flex-col bg-background overflow-hidden">
+            {/* Top Header */}
+            <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+                <div className="flex items-center gap-3">
+                    <Link href="/" className="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity">
+                        <Film className="h-5 w-5" />
+                        <span className="font-semibold">FrameReview</span>
                     </Link>
-                    <h1 className="text-xl font-semibold truncate">{video.filename}</h1>
+                    <div className="w-px h-5 bg-border" />
+                    <div>
+                        <h1 className="text-sm font-medium text-foreground max-w-[200px] truncate" title={video.filename}>
+                            {video.filename}
+                        </h1>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>V1</span>
+                            <span>•</span>
+                            <span>{new Date(video.created_at).toLocaleDateString()}</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="space-y-4">
-                    <div className="relative aspect-video bg-black rounded-lg overflow-hidden border border-border shadow-lg">
-                        <video
+                <div className="flex items-center gap-2">
+                    <Badge
+                        variant="outline"
+                        className="bg-accent/10 text-accent border-accent/30 capitalize"
+                    >
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        {video.status}
+                    </Badge>
+                    <Button variant="ghost" size="sm" className="text-muted-foreground">
+                        <Download className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-muted-foreground">
+                        <Share2 className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-muted-foreground">
+                        <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                </div>
+            </header>
+
+            {/* Main content area */}
+            <div className="flex-1 flex overflow-hidden">
+                {/* Video player area */}
+                <div className="flex-1 flex flex-col min-w-0">
+                    {/* Player container */}
+                    <div className="flex-1 bg-black relative overflow-hidden">
+                        {/* Video element - Passed videoUrl here! */}
+                        <VideoPlayer
                             ref={videoRef}
                             src={videoUrl}
-                            className="w-full h-full object-contain"
-                            onPlay={() => setIsPlaying(true)}
-                            onPause={() => setIsPlaying(false)}
-                            onClick={togglePlay}
+                            currentTime={currentTime}
+                            isPlaying={isPlaying}
+                            onTimeUpdate={setCurrentTime}
+                            onDurationChange={setDuration}
+                            onPlayPause={handlePlayPause}
                         />
-                        <div className="absolute inset-0 z-10 w-full h-full pointer-events-none">
-                            <AnnotationCanvas
-                                isDrawing={isDrawing}
-                                activeTool={activeTool}
-                                onDrawingComplete={(paths) => console.log("Drawing complete:", paths)}
-                            />
-                        </div>
+
+                        {/* Annotation canvas overlay */}
+                        <AnnotationCanvas
+                            isDrawing={isAnnotating}
+                            activeTool={activeTool}
+                        />
+
+                        {/* Spatial comments */}
+                        <SpatialComments
+                            comments={comments}
+                            currentTime={currentTime}
+                            onCommentClick={handleCommentClick}
+                        />
+
+                        {/* Action toolbar */}
+                        <ActionToolbar
+                            activeTool={activeTool}
+                            onToolChange={handleToolChange}
+                        />
+
+                        {/* Playback controls */}
+                        <PlaybackControls
+                            isPlaying={isPlaying}
+                            onPlayPause={handlePlayPause}
+                            onStepBack={() => videoRef.current?.stepFrame("backward")}
+                            onStepForward={() => videoRef.current?.stepFrame("forward")}
+                            onAddComment={() => {
+                                setIsPlaying(false)
+                                setShowCommentInput(true)
+                            }}
+                        />
                     </div>
 
-                    <div className="flex items-center justify-between p-4 border rounded-lg bg-card">
-                        <div className="flex items-center space-x-2">
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={togglePlay}
-                            >
-                                {isPlaying ? (
-                                    <Pause className="h-4 w-4" />
-                                ) : (
-                                    <Play className="h-4 w-4" />
-                                )}
-                            </Button>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                            <Button
-                                variant={isDrawing && activeTool === "pen" ? "default" : "outline"}
-                                size="icon"
-                                onClick={() => {
-                                    setIsDrawing(true)
-                                    setActiveTool("pen")
-                                    videoRef.current?.pause()
-                                }}
-                            >
-                                <Pen className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant={!isDrawing ? "default" : "outline"}
-                                size="icon"
-                                onClick={() => {
-                                    setIsDrawing(false)
-                                    setActiveTool("pointer")
-                                }}
-                            >
-                                <MousePointer className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
+                    {/* Timeline */}
+                    <RichTimeline
+                        currentTime={currentTime}
+                        duration={duration}
+                        comments={comments}
+                        onSeek={handleSeek}
+                        onCommentClick={handleCommentClick}
+                    />
                 </div>
+
+                {/* Comments sidebar */}
+                <CommentsSidebar
+                    comments={comments}
+                    currentTime={currentTime}
+                    onCommentClick={handleCommentClick}
+                    showCommentInput={showCommentInput}
+                    onAddComment={handleAddComment}
+                    onCloseInput={() => setShowCommentInput(false)}
+                />
             </div>
         </div>
     )

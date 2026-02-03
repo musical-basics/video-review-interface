@@ -8,6 +8,7 @@ interface VideoPlayerProps {
   onTimeUpdate: (time: number) => void
   onDurationChange: (duration: number) => void
   onPlayPause: () => void
+  src: string | null
 }
 
 export interface VideoPlayerRef {
@@ -16,9 +17,10 @@ export interface VideoPlayerRef {
 }
 
 export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
-  ({ currentTime, isPlaying, onTimeUpdate, onDurationChange, onPlayPause }, ref) => {
+  ({ currentTime, isPlaying, onTimeUpdate, onDurationChange, onPlayPause, src }, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null)
 
+    // ... useImperativeHandle logic remains the same ...
     useImperativeHandle(ref, () => ({
       seekTo: (time: number) => {
         if (videoRef.current) {
@@ -33,11 +35,12 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
       },
     }))
 
+    // ... useEffect logic remains the same ...
     useEffect(() => {
       if (videoRef.current) {
-        if (isPlaying) {
-          videoRef.current.play()
-        } else {
+        if (isPlaying && videoRef.current.paused) {
+          videoRef.current.play().catch(e => console.error("Playback failed", e))
+        } else if (!isPlaying && !videoRef.current.paused) {
           videoRef.current.pause()
         }
       }
@@ -51,13 +54,8 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
         onLoadedMetadata={(e) => onDurationChange(e.currentTarget.duration)}
         onClick={onPlayPause}
         crossOrigin="anonymous"
-        poster="https://images.unsplash.com/photo-1536240478700-b869070f9279?w=1920&q=80"
-      >
-        <source
-          src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-          type="video/mp4"
-        />
-      </video>
+        src={src || ""}
+      />
     )
   }
 )
