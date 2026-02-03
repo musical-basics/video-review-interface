@@ -84,6 +84,21 @@ export default function UploadPage() {
         }
     }, []);
 
+    const handleCardClick = () => {
+        document.getElementById("file-upload")?.click();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (file.type.startsWith("video/")) {
+                uploadFile(file);
+            } else {
+                alert("Please upload a video file.");
+            }
+        }
+    };
+
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-background p-4">
             <div className="w-full max-w-xl space-y-8">
@@ -95,6 +110,7 @@ export default function UploadPage() {
                 </div>
 
                 <Card
+                    onClick={handleCardClick}
                     className={cn(
                         "border-2 border-dashed transition-all duration-200 ease-in-out cursor-pointer",
                         isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25",
@@ -104,6 +120,13 @@ export default function UploadPage() {
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                 >
+                    <input
+                        id="file-upload"
+                        type="file"
+                        className="hidden"
+                        accept="video/*"
+                        onChange={handleFileChange}
+                    />
                     <CardContent className="flex flex-col items-center justify-center py-16 space-y-6 text-center">
                         {isUploading ? (
                             <div className="w-full max-w-sm space-y-6">
@@ -128,7 +151,7 @@ export default function UploadPage() {
                                         Drag video here
                                     </h3>
                                     <p className="text-sm text-muted-foreground">
-                                        or click to select files (Drag & Drop only for this demo)
+                                        or click to select files
                                     </p>
                                 </div>
                             </>

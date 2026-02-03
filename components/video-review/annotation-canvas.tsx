@@ -138,7 +138,7 @@ export function AnnotationCanvas({ isDrawing, activeTool, onDrawingComplete }: A
       ref={canvasRef}
       width={1920}
       height={1080}
-      className={`absolute inset-0 w-full h-full ${isDrawing && activeTool !== "pointer" ? "cursor-crosshair" : "pointer-events-none"
+      className={`absolute inset-0 w-full h-full ${isDrawing && activeTool !== "pointer" ? "cursor-crosshair pointer-events-auto" : "pointer-events-none"
         }`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}

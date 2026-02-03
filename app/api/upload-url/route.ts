@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const signedUrl = await getSignedUrl(
       R2,
       new PutObjectCommand({
-        Bucket: "clipreview-assets", // Your exact bucket name
+        Bucket: process.env.R2_BUCKET_NAME,
         Key: fileKey,
         ContentType: contentType,
       }),
